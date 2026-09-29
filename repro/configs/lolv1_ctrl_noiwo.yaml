@@ -1,0 +1,52 @@
+# No-IWO control run: the blue curve of paper Figure 10, and the "MBRConv (No IWO)"
+# row of Table 4. Identical to lolv1_stage1.yaml in every respect except exp_name and
+# epochs=2000; it resumes from stage 1's state_last.pt, so epochs 1..1000 are the
+# stage-1 log and 1001..2000 are the continuation without IWO.
+#
+# What must stay byte-identical to stage 1 for the comparison to mean anything:
+#   data, model (plain graph, channels=12, rep_scale=4), loss.pixel, batch_size, lr,
+#   scheduler, seed, cudnn_benchmark, amp.
+# What is deliberately different:
+#   epochs 1000 -> 2000 (the paper's full budget, no IWO applied at 1000)
+exp_name: lolv1_ctrl_noiwo
+seed: 0
+device: cuda
+split: train
+
+data:
+  train_inp: data/LOLv1/our485/low
+  train_gt: data/LOLv1/our485/high
+  valid_inp: data/LOLv1/eval15/low
+  valid_gt: data/LOLv1/eval15/high
+  test_inp: data/LOLv1/eval15/low
+  test_gt: data/LOLv1/eval15/high
+  cache_in_memory: true
+  num_workers: 0
+
+model:
+  channels: 12
+  rep_scale: 4
+  type: plain           # no IWO: this is the control arm
+  iwo_learn_init: zero
+
+loss:
+  pixel: lvw_official
+
+optim:
+  stage: 1
+  batch_size: 2
+  amp: none
+  cudnn_benchmark: true
+  epochs: 2000          # paper: 2,000 epochs total, here without the IWO switch
+  warmup_epochs: 10     # already done in epochs 1..10; skipped because we resume
+  lr: 1e-3
+  lr_warmup: 1e-6
+  weight_decay: 0
+  scheduler: {t0: 50, t_mult: 2, eta_min: 1e-7}   # next restart lands at epoch 1550
+  save_every: 100
+  save_slim: true
+
+eval:
+  use_lpips: true
+  lpips_net: alex
+  clip: true

@@ -1,0 +1,6 @@
+{
+  "stage1_ckpt": "D:\\AIWorkSpace\\MobileIE\\repro\\runs\\lolv1_stage1_190523\\ckpt\\model_best.pkl",
+  "iwo_slots": 7,
+  "zeroed": 7,
+  "frozen_conv_out": 7
+}

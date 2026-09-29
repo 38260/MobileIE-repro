@@ -1,0 +1,34 @@
+# Evaluation of the released re-parameterised checkpoint (pretrain/lolv1_best_slim.pkl)
+exp_name: lolv1_pretrained
+seed: 0
+device: cuda
+split: test
+
+data:
+  test_inp: data/LOLv1/eval15/low
+  test_gt: data/LOLv1/eval15/high
+  cache_in_memory: true
+  num_workers: 0
+
+model:
+  channels: 12
+  rep_scale: 4
+  type: slim
+  pretrained: ../MobileIE-main/MobileIE-main/pretrain/lolv1_best_slim.pkl
+
+optim:
+  batch_size: 1
+
+eval:
+  use_lpips: true
+  lpips_net: alex
+  clip: true
+
+# Table 1 of the paper, LOLv1 columns - used by scripts/verify_pretrained.py
+reference:
+  params_k: 4.047
+  psnr: 23.62
+  ssim: 0.812
+  lpips: 0.198
+  gpu_latency_ms: 0.895
+  fps_600x400: 1120.584

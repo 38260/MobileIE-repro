@@ -1,0 +1,45 @@
+# Control arm for the paper's Fig. 10 claim ("without IWO the loss stagnates late in
+# training").  Same graph, same recipe, just 2000 epochs and no IWO stage at all.
+# Compare its loss/PSNR curve against lolv1_cloud_s1 + lolv1_cloud_s2.
+exp_name: lolv1_cloud_ctrl
+seed: 0
+device: cuda
+split: train
+
+data:
+  train_inp: data/LOLv1/our485/low
+  train_gt: data/LOLv1/our485/high
+  valid_inp: data/LOLv1/eval15/low
+  valid_gt: data/LOLv1/eval15/high
+  test_inp: data/LOLv1/eval15/low
+  test_gt: data/LOLv1/eval15/high
+  cache_in_memory: true
+  num_workers: 0
+
+model:
+  channels: 12
+  rep_scale: 4
+  type: plain
+  iwo_learn_init: zero
+
+loss:
+  pixel: lvw_official
+
+optim:
+  stage: 1
+  batch_size: 4
+  epochs: 2000            # no IWO switch: this arm never builds W_pre
+  warmup_epochs: 10
+  lr: 1e-3
+  lr_warmup: 1e-6
+  weight_decay: 0
+  scheduler: {t0: 50, t_mult: 2, eta_min: 1e-7}
+  amp: none
+  cudnn_benchmark: true
+  save_every: 200
+  save_slim: true
+
+eval:
+  use_lpips: true
+  lpips_net: alex
+  clip: true

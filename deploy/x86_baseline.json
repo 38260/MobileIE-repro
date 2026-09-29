@@ -1,0 +1,22 @@
+{
+  "model": "MobileIE-main/MobileIE-main/pretrain/lolv1.tflite",
+  "input_shape": [
+    1,
+    400,
+    600,
+    3
+  ],
+  "threads": 4,
+  "warmup": 20,
+  "note": "invoke() only: no image decode, no resize, no upload",
+  "frames": 60,
+  "min_ms": 18.379,
+  "median_ms": 19.934,
+  "p95_ms": 21.94,
+  "mean_ms": 19.982,
+  "fps_median": 50.2,
+  "images": 15,
+  "psnr_rgb": 23.6321,
+  "mae": 0.06178,
+  "host": "AMD64 Windows"
+}

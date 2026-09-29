@@ -1,0 +1,10 @@
+{
+  "best": {
+    "psnr": 22.873903020222983,
+    "epoch": 690
+  },
+  "stage": 2,
+  "params": 49978,
+  "epochs_planned": 1000,
+  "resumed_from": "D:\\AIWorkSpace\\MobileIE\\repro\\runs\\lolv1_stage2_iwo_181058\\ckpt\\state_last.pt"
+}

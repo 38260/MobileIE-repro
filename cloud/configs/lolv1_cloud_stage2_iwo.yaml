@@ -1,0 +1,45 @@
+# Cloud run (24 GB card) - stage 2, Incremental Weight Optimisation.
+# init_from points at the cloud stage-1 run, so a stage-1 trained locally cannot be
+# mixed with a stage-2 trained here by accident.
+exp_name: lolv1_cloud_s2
+seed: 0
+device: cuda
+split: train
+
+data:
+  train_inp: data/LOLv1/our485/low
+  train_gt: data/LOLv1/our485/high
+  valid_inp: data/LOLv1/eval15/low
+  valid_gt: data/LOLv1/eval15/high
+  test_inp: data/LOLv1/eval15/low
+  test_gt: data/LOLv1/eval15/high
+  cache_in_memory: true
+  num_workers: 0
+
+model:
+  channels: 12
+  rep_scale: 4
+  type: iwo
+  iwo_learn_init: zero
+
+loss:
+  pixel: lvw_official
+
+optim:
+  stage: 2
+  init_from: runs/lolv1_cloud_s1/ckpt/model_best.pkl
+  batch_size: 4
+  epochs: 1000
+  lr: 1e-3
+  lr_warmup: 1e-6
+  weight_decay: 0
+  scheduler: {t0: 50, t_mult: 2, eta_min: 1e-7}
+  amp: none
+  cudnn_benchmark: true
+  save_every: 100
+  save_slim: true
+
+eval:
+  use_lpips: true
+  lpips_net: alex
+  clip: true

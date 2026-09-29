@@ -1,0 +1,41 @@
+# ISP task, author checkpoint (pretrain/zrr_best_slim.pkl) on the ZRR test split.
+# Input is a 12-bit RGGB Bayer mosaic reshaped to 4 x H/2 x W/2 and divided by 4095
+# (the released data/ispdata.py contract); the net upsamples back with PixelShuffle(2),
+# so a 448x448 mosaic enters as 4x224x224 and leaves as 3x448x448 - which is also the
+# 448x448 the paper's Table 3 measured at.
+exp_name: zrr_pretrained
+seed: 0
+device: cuda
+split: test
+
+data:
+  kind: raw
+  test_inp: data/ZRR/test/raw
+  test_gt: data/ZRR/test/srgb
+  cache_in_memory: false        # 16-bit mosaics are heavy; decode per item instead
+  num_workers: 0
+
+model:
+  channels: 12
+  rep_scale: 4
+  type: slim
+  task: isp
+  pretrained: ../MobileIE-main/MobileIE-main/pretrain/zrr_best_slim.pkl
+
+optim:
+  batch_size: 1
+
+eval:
+  use_lpips: true
+  lpips_net: alex
+  clip: true
+  shape: [1, 4, 224, 224]
+
+# paper Table 3, "Ours" row (SSIM/PSNR measured on ZRR, 448x448)
+reference:
+  params_k: 4.104
+  psnr: 21.43
+  ssim: 0.731
+  gpu_latency_ms: 1.020
+  soc_latency_ms: 14.40
+  fps_448x448: 980.516

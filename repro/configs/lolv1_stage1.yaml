@@ -1,0 +1,43 @@
+# MobileIE on LOLv1 - stage 1 (re-parameterisable training graph, paper Sec. 3.1-3.5)
+exp_name: lolv1_stage1
+seed: 0
+device: cuda
+split: train
+
+data:
+  train_inp: data/LOLv1/our485/low
+  train_gt: data/LOLv1/our485/high
+  valid_inp: data/LOLv1/eval15/low
+  valid_gt: data/LOLv1/eval15/high
+  test_inp: data/LOLv1/eval15/low
+  test_gt: data/LOLv1/eval15/high
+  cache_in_memory: true
+  num_workers: 0       # the dataset is cached as uint8 in RAM, so workers add nothing
+
+model:
+  channels: 12          # config/lle.yaml in the release
+  rep_scale: 4
+  type: plain           # plain = multi-branch train graph, iwo = Eq.1 variant, slim = inference graph
+  iwo_learn_init: zero
+
+loss:
+  pixel: lvw_official   # lvw_official | lvw_paper | l1 | l2
+
+optim:
+  stage: 1
+  batch_size: 2         # release ships 4; 2 keeps peak VRAM at 6.0GB of this 12GB card
+  amp: none             # paper trains fp32; bf16 is available when the card is contended
+  cudnn_benchmark: true # false -> bit-reproducible reruns, slightly slower
+  epochs: 1000          # paper: "W_pre is ... obtained after the first 1000 epochs"
+  warmup_epochs: 10     # paper: 10-epoch warm-up
+  lr: 1e-3
+  lr_warmup: 1e-6
+  weight_decay: 0
+  scheduler: {t0: 50, t_mult: 2, eta_min: 1e-7}
+  save_every: 100
+  save_slim: true
+
+eval:
+  use_lpips: true
+  lpips_net: alex
+  clip: true

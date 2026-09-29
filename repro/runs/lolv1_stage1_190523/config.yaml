@@ -1,0 +1,42 @@
+exp_name: lolv1_stage1
+seed: 0
+device: cuda
+split: train
+data:
+  train_inp: D:\AIWorkSpace\MobileIE\repro\data\LOLv1\our485\low
+  train_gt: D:\AIWorkSpace\MobileIE\repro\data\LOLv1\our485\high
+  valid_inp: D:\AIWorkSpace\MobileIE\repro\data\LOLv1\eval15\low
+  valid_gt: D:\AIWorkSpace\MobileIE\repro\data\LOLv1\eval15\high
+  test_inp: D:\AIWorkSpace\MobileIE\repro\data\LOLv1\eval15\low
+  test_gt: D:\AIWorkSpace\MobileIE\repro\data\LOLv1\eval15\high
+  cache_in_memory: true
+  num_workers: 0
+model:
+  channels: 12
+  rep_scale: 4
+  type: plain
+  iwo_learn_init: zero
+loss:
+  pixel: lvw_official
+optim:
+  stage: 1
+  batch_size: 2
+  amp: none
+  cudnn_benchmark: true
+  epochs: 1000
+  warmup_epochs: 10
+  lr: 1e-3
+  lr_warmup: 1e-6
+  weight_decay: 0
+  scheduler:
+    t0: 50
+    t_mult: 2
+    eta_min: 1e-7
+  save_every: 100
+  save_slim: true
+  resume_from: D:\AIWorkSpace\MobileIE\repro\runs\lolv1_stage1_190523\ckpt\state_last.pt
+eval:
+  use_lpips: true
+  lpips_net: alex
+  clip: true
+_config_path: D:\AIWorkSpace\MobileIE\repro\configs\lolv1_stage1.yaml

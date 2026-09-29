@@ -1,0 +1,15 @@
+# Everything except PyTorch:  setup.ps1 / setup.sh install the torch build that
+# matches the local NVIDIA driver (cu128/cu126/cu121/cu118/cpu).
+#
+# Doing it by hand instead?  Pick the CUDA line that matches your driver, e.g.
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
+# cu128 is required for RTX 50-series (sm_120) and also covers sm_70..sm_90.
+
+numpy
+opencv-python
+scikit-image
+lpips
+matplotlib
+pyyaml
+tqdm
+huggingface-hub>=0.30,<1.0

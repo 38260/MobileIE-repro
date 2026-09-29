@@ -1,0 +1,36 @@
+﻿
+ProcessId ParentProcessId Cmd                                                  
+--------- --------------- ---                                                  
+    18880            7456 C:\Windows\system32\cmd.exe /d /s /c "C:\Users\luckyz
+                          yb\.workbuddy-ai\plugins\cache\workbuddy-builtin\weix
+                          inpay\1.6.109\bin\run-node ^"C:\Users\luckyzyb\.workb
+                          uddy-ai\plugins\cache\workbuddy-builtin\weixinpay\1.6
+                          .109/dist/mcp-server.mjs^""                          
+    30076           14996 "D:\AIWorkSpace\MobileIE\.venv\Scripts\python.exe"  s
+                          cripts\board.py --port 8765                          
+    19520           30076 "C:\Users\luckyzyb\AppData\Roaming\uv\python\cpython-
+                          3.11-windows-x86_64-none\python.exe"   scripts\board.
+                          py --port 8765                                       
+    11852           17916 C:\Windows\system32\cmd.exe /d /s /c ""C:\Users\lucky
+                          zyb\.codex\plugins\cache\openai-bundled\chrome\latest
+                          \extension-host\windows\x64\extension-host.exe" chrom
+                          e-extension://hehggadaopoacecdllhhajmbjkdcmajg/ --par
+                          ent-window=0" < \\.\pipe\chrome.nativeMessaging.in.4f
+                          a35b8b65d12fbb > \\.\pipe\chrome.nativeMessaging.out.
+                          4fa35b8b65d12fbb                                     
+    30024           17916 C:\Windows\system32\cmd.exe /d /s /c ""D:\Program Fil
+                          es\Tencent\Marvis\MarvisAgent\1.60.2600.614\resource\
+                          marvis_browser\marvis-browser-host.exe" chrome-extens
+                          ion://eadcnchjjkjggolbeacoahkejdecgjcg/ --parent-wind
+                          ow=0" < \\.\pipe\chrome.nativeMessaging.in.7e372f317a
+                          4cf752 > \\.\pipe\chrome.nativeMessaging.out.7e372f31
+                          7a4cf752                                             
+    30828           10640 C:\Windows\system32\cmd.exe /c ""D:\AIWorkSpace\Mobil
+                          eIE\train_ctrl.bat" "                                
+    13220           30828 "D:\AIWorkSpace\MobileIE\.venv\Scripts\python.exe"  s
+                          cripts\train.py --config lolv1_ctrl_noiwo            
+    22900           13220 "C:\Users\luckyzyb\AppData\Roaming\uv\python\cpython-
+                          3.11-windows-x86_64-none\python.exe"   scripts\train.
+                          py --config lolv1_ctrl_noiwo                         
+
+

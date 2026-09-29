@@ -1,0 +1,13 @@
+setup.py
+onnx2tflite/__init__.py
+onnx2tflite/__main__.py
+onnx2tflite/converter.py
+onnx2tflite.egg-info/PKG-INFO
+onnx2tflite.egg-info/SOURCES.txt
+onnx2tflite.egg-info/dependency_links.txt
+onnx2tflite.egg-info/requires.txt
+onnx2tflite.egg-info/top_level.txt
+test/test_concat.py
+test/test_reshape_transpose.py
+test/test_squeeze.py
+test/test_torchvison.py

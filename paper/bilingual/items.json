@@ -1,0 +1,964 @@
+[
+ {
+  "kind": "para",
+  "page": 1,
+  "col": -1,
+  "y": 105.9,
+  "text": "MobileIE: An Extremely Lightweight and Effective ConvNet for Real-Time Image Enhancement on Mobile Devices",
+  "i": 0
+ },
+ {
+  "kind": "para",
+  "page": 1,
+  "col": -1,
+  "y": 162.2,
+  "text": "Hailong Yan1, Ao Li1, Xiangtao Zhang1, Zhe Liu1, Zenglin Shi2, Ce Zhu1, Le Zhang1*",
+  "i": 1
+ },
+ {
+  "kind": "para",
+  "page": 1,
+  "col": -1,
+  "y": 176.1,
+  "text": "1UESTC 2Hefei University of Technology yanhailong@std.uestc.edu.cn, lezhang@uestc.edu.cn",
+  "i": 2
+ },
+ {
+  "kind": "heading",
+  "page": 1,
+  "col": 0,
+  "y": 232.5,
+  "text": "Abstract",
+  "i": 3
+ },
+ {
+  "kind": "para",
+  "page": 1,
+  "col": 0,
+  "y": 258.1,
+  "text": "Recent advancements in deep neural networks have driven significant progress in image enhancement (IE). However, deploying deep learning models on resource-constrained platforms, such as mobile devices, remains challenging due to high computation and memory demands. To address these challenges and facilitate real-time IE on mobile, we introduce an extremely lightweight Convolutional Neural Network (CNN) framework with around 4K parameters. Our approach integrates reparameterization with an Incremental Weight Optimization strategy to ensure efficiency. Additionally, we enhance performance with a Feature Self-Transform module and a Hierarchical Dual-Path Attention mechanism, optimized with a Local Variance-Weighted loss. With this efficient framework, we are the first to achieve real-time IE inference at up to 1,100 frames per second (FPS) while delivering competitive image quality, achieving the best trade-off between speed and performance across multiple IE tasks. The code will be available at https: //github.com/AVC2-UESTC/MobileIE.git.",
+  "i": 4
+ },
+ {
+  "kind": "heading",
+  "page": 1,
+  "col": 0,
+  "y": 508.4,
+  "text": "1. Introduction",
+  "i": 5
+ },
+ {
+  "kind": "para",
+  "page": 1,
+  "col": 0,
+  "y": 529.1,
+  "text": "Image enhancement (IE) aims to restore images degraded by factors such as camera limitations [86], poor lighting [48], or challenging environments (e.g., underwater [55]). With the growing prevalence of smart devices and embedded systems, real-time image enhancement has become essential in applications like mobile devices. These scenarios require not only high-quality output but also real-time processing, demanding efficient image enhancement within the constraints of limited computational resources [9, 16–18]. Recent advancements in Transformer-based [14, 42, 69] and Diffusion-based [79, 84, 96] methods have demonstrated significant progress in image enhancement (IE) tasks. However, their reliance on computationally expensive self-attention mechanisms and iterative diffusion processes makes them unsuitable for mobile devices. While lightweight models have been developed to reduce computational complexity using parameter compression and low-FLOPs architecture designs [57, 59, 63, 80, 83], these approaches often compromise enhancement quality, making it challenging to achieve high performance across a wide range of degradation scenarios [1]. Furthermore, the increasing demand for high-resolution images [69] exacerbates the computational burdens on mobile platforms. Besides facing computational bottlenecks, current IE methods are typically optimized for specific degradation types, restricting their adaptability. Although advanced operators [10, 11] have shown effectiveness in certain tasks, their complexity makes them unsuitable for mobile deployment. Consequently, designing a universal and efficient network capable of real-time IE on resource-constrained devices remains a significant research challenge. We believe that mobile-based IE should strike a balance between speed and performance, leveraging general architectures and hardware-friendly operators [66, 88]. To address these challenges, we introduce MobileIE, an efficient method designed for real-time enhancement in resource-constrained environments, optimizing both performance and resource utilization. Although degradation types vary widely, IE tasks share common requirements: global information for structural integrity and local details for accurate recovery. This commonality enables the use of universal modules across different tasks. Building on this concept, MobileIE employs a streamlined topology and deployable operators to achieve efficient performance on resource-constrained devices. We decouple the training and inference phases, simplifying the feedforward structure for more efficient inference. At the core of our design is MBRConv, a Multi-Branch Re-parameterized Convolution, which captures multi-scale features using various convolution sizes. These features are then processed through concatenation, compression, and mapping to achieve the desired output dimensions. Additionally, we introduce a Feature Self-Transform (FST) module, which enhances the feature representation capability of linear convolutions by capturing nonlinear relationships through secondary feature interactions. To enhance focus on critical regions, we simplify the attention mechanism and develop a hardware-friendly Hierarchical Dual-Path Attention (HDPA) mechanism, which efficiently fuses global and local features. To overcome training bottlenecks, we introduce an Incremental Weight Optimization (IWO) Strategy and a Local Variance Weighted (LVW) Loss function. The IWO strategy freezes prior knowledge, integrates it into trainable convolutional kernels, and re-parameterizes these into new kernels to boost model performance. Meanwhile, the LVW Loss function enhances accuracy without increasing the number of parameters. Key contributions of this paper include: • We introduce MobileIE, a framework designed for real-time image enhancement on mobile devices, featuring compact and efficient modules tailored for resource-constrained environments. • We propose an Incremental Weight Optimization (IWO) Strategy and a Local Variance Weighted (LVW) Loss to address the challenges of training compact models, enhancing performance without adding complexity. • We demonstrate that MobileIE achieves state-of-the-art speed and performance across three image enhancement tasks, sustaining over 100 FPS and enabling seamless deployment on mobile devices.",
+  "i": 6
+ },
+ {
+  "kind": "footnote",
+  "page": 1,
+  "col": 0,
+  "y": 705.0,
+  "text": "*Corresponding author.",
+  "i": 7
+ },
+ {
+  "kind": "figure",
+  "page": 1,
+  "y": 231.7,
+  "caption": "Figure 1. Efficiency comparison. MobileIE achieves superior performance in balancing speed, compactness, and accuracy.",
+  "rect": [
+   317.2,
+   231.7,
+   553.5,
+   389.3
+  ],
+  "i": 8,
+  "img": "assets/p01_figure_8.png"
+ },
+ {
+  "kind": "heading",
+  "page": 2,
+  "col": 0,
+  "y": 568.3,
+  "text": "2. Related Works",
+  "i": 9
+ },
+ {
+  "kind": "heading",
+  "page": 2,
+  "col": 0,
+  "y": 588.7,
+  "text": "2.1. Low-Level Vision Tasks",
+  "i": 10
+ },
+ {
+  "kind": "para",
+  "page": 2,
+  "col": 0,
+  "y": 607.1,
+  "text": "This section covers three key tasks: Low-Light Enhancement (LLE), Underwater Image Enhancement (UIE), and end-to-end Image Signal Processing (ISP). LLE. LLE focuses on mitigating color distortion and noise in degraded images. Retinex-based [5, 46, 78, 81, 85] enhance images by separating illumination and reflectance. Zero-DCE [28] adjusts underexposed images using a luminance enhancement curve, and PairLIE [26] learns enhancement from varying lighting conditions. Transformerbased [5, 71, 76] and Mamba-based [93] methods have also achieved notable success, while Diffusion-based [39, 85] methods excel at generating accurate images in extremely low-light conditions, even with noise and limited data. UIE. Compared to traditional UIE methods [24, 101], CNN-based [38, 52, 53, 61] directly learn feature representations from underwater images. Five A+ [40] proposed a two-stage framework with a pixel attention module for real-time enhancement. Transformer-based [41, 55] and Mamba-based [2, 12] models more effectively handle complex underwater scenes with their global receptive fields. Additionally, Diffusion-based [65, 96] approaches reduce noise and enhance contrast efficiently. ISP. Learning-based ISP pipelines replace traditional multi-module systems by employing end-to-end models that directly process RAW input into RGB images. PyNet [35] focuses on mobile ISPs, while MW-ISP [34] and AWNet [20] improve performance using wavelet transforms. LiteISP [95] resolves misalignment between RAW and sRGB images, achieving better results through joint learning. Rawformer [56] eliminates the need for paired datasets with an unsupervised Transformer, and DiffRAW [84] introduces diffusion models into ISP. Several ISP challenge works [34, 36, 37] have also produced notable results.",
+  "i": 11
+ },
+ {
+  "kind": "heading",
+  "page": 2,
+  "col": 1,
+  "y": 370.9,
+  "text": "2.2. Efficient Architectures Design",
+  "i": 12
+ },
+ {
+  "kind": "para",
+  "page": 2,
+  "col": 1,
+  "y": 389.2,
+  "text": "Efficient neural networks aim to balance computational complexity and performance. Models like MobileNet [32] and ShuffleNet [91] achieve high performance with fewer FLOPs, while GhostNet [29] and FasterNet [8] generate feature maps through cost-effective operations. StarNet [51] excels in extracting rich representations with star-shaped operations, and VanillaNet [7] demonstrates minimalism’s power using only a few convolutions. Furthermore, re-parameterization strategies have also proven successful in efficient network design. Models like ACNet [21], DBB [22], and RepVGG [23] use multi-branch topologies to accelerate inference, while RepGhost [23], RepViT [68], and MobileOne [66] adopt similar approaches to enhance performance. Several NTIRE challenge submissions [15, 45, 60] have utilized re-parameterized structures to accelerate inference in efficient IE tasks.",
+  "i": 13
+ },
+ {
+  "kind": "heading",
+  "page": 2,
+  "col": 1,
+  "y": 592.8,
+  "text": "3. Proposed Method",
+  "i": 14
+ },
+ {
+  "kind": "heading",
+  "page": 2,
+  "col": 1,
+  "y": 612.9,
+  "text": "3.1. Overall Pipeline",
+  "i": 15
+ },
+ {
+  "kind": "para",
+  "page": 2,
+  "col": 1,
+  "y": 631.2,
+  "text": "We aim to design an efficient IE model that balances parameters, speed, and performance. Following the simplicity principle [88], we adopted a streamlined topology based on basic operations, illustrated in Figure 2. The proposed MobileIE, built on Re-parameterization, integrates four key components: shallow feature extraction, deep feature extraction, feature transform, and an attention mechanism. During training, the degraded image first passes through MBRConv5 × 5 and the PReLU activation function to extract shallow features. Two MBRConv3 × 3 and FST modules then process these to learn deeper features. The HDPA mechanism directs the model’s focus to important regions, and MBRConv3 × 3 refines the output. To address training performance bottlenecks, we introduce the IWO strategy and LVW loss function. In inference, all MBRConv layers are re-parameterized into standard convolutions, reducing parameters while maintaining performance. MobileIE’s streamlined structure ensures fast inference and easy deployment on mobile devices. Despite its simplicity, MobileIE surpasses SOTA lightweight IE models, as shown in Figure 1.",
+  "i": 16
+ },
+ {
+  "kind": "figure",
+  "page": 3,
+  "y": 71.4,
+  "caption": "Figure 2. Architecture of the proposed MobileIE includes Multi-Branch Re-param Convolution (MBRConv), Feature Self-Transform (FST), and Hierarchical Dual-Path Attention (HDPA). During inference, MBRConv re-parameterizes into a standard convolution, reducing the model size to 4K parameters while maintaining training performance. The detailed architecture settings are provided in the Appendix.",
+  "rect": [
+   58.5,
+   71.4,
+   553.5,
+   368.2
+  ],
+  "i": 17,
+  "img": "assets/p03_figure_17.png"
+ },
+ {
+  "kind": "heading",
+  "page": 3,
+  "col": 0,
+  "y": 564.1,
+  "text": "3.2. Multi-Branch Re-param Convolution",
+  "i": 18
+ },
+ {
+  "kind": "para",
+  "page": 3,
+  "col": 0,
+  "y": 582.9,
+  "text": "Re-parameterization has achieved success in high-level vision tasks [21–23], but yields unsatisfactory results when directly applied to image enhancement [27]. We introduce MBRConv, specifically designed for image enhancement. Figure 3(a) shows MBRConv with multiple convolutional branches of varying kernel sizes, capturing multi-scale features that are concatenated and integrated via a Conv 1 × 1 (convout). The branches are re-parameterized during inference into a single convolution, reducing computational cost while preserving training performance. Unlike previous Rep methods, MBRConv includes parallel Batch",
+  "i": 19
+ },
+ {
+  "kind": "para",
+  "page": 3,
+  "col": 1,
+  "y": 385.7,
+  "text": "Norm (BN) layers in each branch. Although BN is less effective for IE tasks [74, 92], it enhances nonlinearity and cannot be replaced by other activations due to its unique ability to merge into a single convolution. The parallel BN layers retain both smoothed and original features, improving robustness across diverse data distributions. Additional details on MBRConv can be found in the Appendix.",
+  "i": 20
+ },
+ {
+  "kind": "figure",
+  "page": 3,
+  "y": 479.3,
+  "caption": "Figure 3. Structural of MBRConv3 × 3.",
+  "rect": [
+   317.2,
+   479.3,
+   553.5,
+   616.2
+  ],
+  "i": 21,
+  "img": "assets/p03_figure_21.png"
+ },
+ {
+  "kind": "para",
+  "page": 3,
+  "col": 1,
+  "y": 631.7,
+  "text": "Although multi-branch topologies assist in feature extraction, compact networks still struggle to learn complex features, leading to stagnation in later training stages. Adjusting training hyperparameters often results in marginal improvements. To address this, we propose the Incremental Weight Optimization (IWO) strategy, which combines learnable weights with prior knowledge to enhance the integration performance of the convout by better capturing relationships between features across layers in MBRConv. As shown in Figure 3(b), IWO combines two weight components: frozen weights, Wpre, from prior training, and learnable weights, Wlearn. These are fused as:",
+  "i": 22
+ },
+ {
+  "kind": "equation",
+  "page": 4,
+  "y": 141.6,
+  "caption": "\\labe l {(1)} W_{fi n al} = {\\rm Frozen}(W_{pre}) + W_{learn}, (1)",
+  "rect": [
+   101.0,
+   141.6,
+   297.8,
+   159.1
+  ],
+  "i": 23,
+  "img": "assets/p04_equation_23.png"
+ },
+ {
+  "kind": "para",
+  "page": 4,
+  "col": 0,
+  "y": 167.1,
+  "text": "where Wpre is the optimal weight from earlier training and remains frozen, and Wlearn is dynamically updated during subsequent training. The final weight, Wfinal, is applied to the concatenated feature map:",
+  "i": 24
+ },
+ {
+  "kind": "equation",
+  "page": 4,
+  "y": 222.3,
+  "caption": "\\la b el {(1)} y_{out} = F_{co n v1\\times 1}(x_{concat};W_{final})+ b_{conv_{out}}, (2)",
+  "rect": [
+   80.6,
+   222.3,
+   297.8,
+   239.8
+  ],
+  "i": 25,
+  "img": "assets/p04_equation_25.png"
+ },
+ {
+  "kind": "para",
+  "page": 4,
+  "col": 0,
+  "y": 247.7,
+  "text": "where xconcat denotes the concatenated multi-branch features, Fconv represents the convolution. yout and bconvout represent the output feature map and the bias, respectively. Wpre offers a stable initial feature representation, minimizing redundancy. Wlearn refines these features, improving task-specific detail capture. IWO combines prior knowledge with learnable parameters, balancing knowledge transfer and feature refinement to improve feature integration.",
+  "i": 26
+ },
+ {
+  "kind": "heading",
+  "page": 4,
+  "col": 0,
+  "y": 351.5,
+  "text": "3.3. Feature Self-Transform",
+  "i": 27
+ },
+ {
+  "kind": "para",
+  "page": 4,
+  "col": 0,
+  "y": 369.5,
+  "text": "While MBRConv captures multi-scale features, its linear operations restrict higher-order feature interactions. To address this, we introduce FST, which employs a quadratic interaction mechanism [51] to boost the model’s nonlinear expressiveness. In FST, the input features are element-wise multiplied by themselves, scaled by a learnable parameter, Scale, and adjusted by a learnable bias term.",
+  "i": 28
+ },
+ {
+  "kind": "equation",
+  "page": 4,
+  "y": 460.3,
+  "caption": "\\labe l {(1) } { \\ rm FST}(x) = Scale\\cdot (x\\ast x) + bias. (3)",
+  "rect": [
+   104.4,
+   460.3,
+   297.8,
+   476.6
+  ],
+  "i": 29,
+  "img": "assets/p04_equation_29.png"
+ },
+ {
+  "kind": "para",
+  "page": 4,
+  "col": 0,
+  "y": 486.0,
+  "text": "This quadratic interaction captures more complex relationships between features, unlike traditional linear combinations. A learnable bias term is also applied channel-wise to fine-tune the output further. FST significantly improves feature representation by capturing higher-order interactions, while the learnable bias enhances adaptability across dimensions. This design balances improved expressiveness with computational efficiency, making FST suitable for lightweight models and real-time inference.",
+  "i": 30
+ },
+ {
+  "kind": "heading",
+  "page": 4,
+  "col": 0,
+  "y": 601.5,
+  "text": "3.4. Hierarchical Dual-Path Attention",
+  "i": 31
+ },
+ {
+  "kind": "para",
+  "page": 4,
+  "col": 0,
+  "y": 619.5,
+  "text": "We propose a simple HDPA mechanism to improve feature extraction in IE. HDPA selectively captures both global and local features, integrating spatial and channel interactions to improve feature precision and comprehensiveness. Its dual-path structure optimizes feature selection at each layer through two distinct pathways. HDPA operates in two steps: (1) Global Feature Extraction: Global statistics are extracted using adaptive average pooling. Global features are processed by an MBRConv1x1 layer, and Sigmoid activation to generate channel-wise attention weights, modulating the importance of each channel. This step is expressed as:",
+  "i": 32
+ },
+ {
+  "kind": "equation",
+  "page": 4,
+  "y": 115.9,
+  "caption": "\\ l abel {(1)} A_{g} = {\\rm Sigmoid(MBRConv1\\times 1(AvgPool}(F))), (4)",
+  "rect": [
+   326.9,
+   115.9,
+   556.5,
+   133.5
+  ],
+  "i": 33,
+  "img": "assets/p04_equation_33.png"
+ },
+ {
+  "kind": "para",
+  "page": 4,
+  "col": 1,
+  "y": 139.9,
+  "text": "where Ag denotes the global attention weights, and F represents the input features. (2) Local Feature Enhancement: In the second pathway, local features are extracted using max pooling on globally enhanced features. The input is multiplied by the global weights Wg = F∗Ag, followed by max pooling to capture local information. The local responses are processed by an MBRConv1 × 1, with Sigmoid activation generating the local attention weights.",
+  "i": 34
+ },
+ {
+  "kind": "equation",
+  "page": 4,
+  "y": 253.4,
+  "caption": "\\ l abel {(1)} A_{l} = {\\rm Sigmoid(MBRConv1\\times 1(MaxPool}(W_{g}))), (5)",
+  "rect": [
+   323.7,
+   253.4,
+   556.5,
+   271.0
+  ],
+  "i": 35,
+  "img": "assets/p04_equation_35.png"
+ },
+ {
+  "kind": "para",
+  "page": 4,
+  "col": 1,
+  "y": 277.4,
+  "text": "where Al represents the local attention weights. Finally, the global and local attention weights are combined through element-wise multiplication to produce the final attention feature, which is applied to the input features:",
+  "i": 36
+ },
+ {
+  "kind": "equation",
+  "page": 4,
+  "y": 331.7,
+  "caption": "\\ l abel {( 1 )} \\ hat {F} = {\\rm HDPA}(F)=(A_{g}\\ast A_{l}) \\ast F, (6)",
+  "rect": [
+   363.8,
+   331.7,
+   556.5,
+   351.0
+  ],
+  "i": 37,
+  "img": "assets/p04_equation_37.png"
+ },
+ {
+  "kind": "para",
+  "page": 4,
+  "col": 1,
+  "y": 353.3,
+  "text": "where ˆF donates the output feature after HDPA processing. This dual-path hierarchical design balances global context and local feature enhancement, improving both depth and accuracy in feature extraction. Its simplicity reduces the computational cost, making it well-suited for resource-constrained environments.",
+  "i": 38
+ },
+ {
+  "kind": "heading",
+  "page": 4,
+  "col": 1,
+  "y": 434.5,
+  "text": "3.5. Local Variance Weighted Loss",
+  "i": 39
+ },
+ {
+  "kind": "para",
+  "page": 4,
+  "col": 1,
+  "y": 452.3,
+  "text": "Compact CNNs, with limited parameters, struggle to capture rich features and are sensitive to extreme pixels that hinder optimization [1, 27]. While L1 loss is robust, its equal weighting limits outlier handling; L2 emphasizes outliers but may cause imbalance. To address this, we introduce Local Variance Weighted Loss (LVW), which adapts to local variability and mitigates outliers effectively.",
+  "i": 40
+ },
+ {
+  "kind": "figure",
+  "page": 4,
+  "y": 545.3,
+  "caption": "Figure 4. (a) Effect of Batch Norm on Data Distribution. (b) Comparison of Loss Functions for Pixel Difference Handling.",
+  "rect": [
+   317.2,
+   545.3,
+   553.5,
+   676.6
+  ],
+  "i": 41,
+  "img": "assets/p04_figure_41.png"
+ },
+ {
+  "kind": "para",
+  "page": 4,
+  "col": 1,
+  "y": 687.9,
+  "text": "Let {O, L} ∈RB×C×H×W denote the predicted output and ground-truth, where B, C, H, and W denote batch size, number of channels, height, and width of the image, respectively. The absolute difference between the predicted output and the ground truth at pixel (m, n) is calculated as:",
+  "i": 42
+ },
+ {
+  "kind": "table",
+  "page": 5,
+  "y": 74.5,
+  "caption": "Table 1. Performance comparison of different low-light image enhancement models on LOL datasets. SCORE [37] represents a comprehensive measure of model performance and efficiency. The top results are marked: best in red and second in blue.",
+  "rect": [
+   58.5,
+   74.5,
+   553.5,
+   223.0
+  ],
+  "i": 43,
+  "img": "assets/p05_table_43.png"
+ },
+ {
+  "kind": "equation",
+  "page": 5,
+  "y": 290.9,
+  "caption": "\\la b el {( 1 )} \\Delta _{m,n} = \\Arrowvert {O_{m,n} - L_{m,n}\\Arrowvert }_{1}. (7)",
+  "rect": [
+   118.7,
+   290.9,
+   297.8,
+   309.7
+  ],
+  "i": 44,
+  "img": "assets/p05_equation_44.png"
+ },
+ {
+  "kind": "para",
+  "page": 5,
+  "col": 0,
+  "y": 311.0,
+  "text": "For each predicted output, we calculate the local mean µm,n and variance σ2 m,n of ∆m,n across the spatial dimensions H and W. This can be expressed as follows:",
+  "i": 45
+ },
+ {
+  "kind": "equation",
+  "page": 5,
+  "y": 349.9,
+  "caption": "\\ l a b e l { ( 5 ) } \\le f t \\ { \\ b e gin { ali gned} & \\mu _ { m , n } = \\ f rac {1} { H\\cdot W}(\\sum ^{H}_{m=1}\\sum ^{W}_{n=1}\\Delta _{m,n})\\\\ &\\sigma ^{2}_{m, n} = \\frac {1}{H\\cdot W}(\\sum ^{H}_{m=1}\\sum ^{W}_{n=1}\\Delta _{m,n}-\\mu _{m, n})^{2}\\\\ \\end {aligned} \\right . (8)",
+  "rect": [
+   85.0,
+   349.9,
+   297.8,
+   422.8
+  ],
+  "i": 46,
+  "img": "assets/p05_equation_46.png"
+ },
+ {
+  "kind": "para",
+  "page": 5,
+  "col": 0,
+  "y": 427.5,
+  "text": "To demonstrate the impact of mean and variance on outliers, we applied BN to simulated data with both normal values and outliers (Figure 4(a)). BN balances sample contributions to mean and variance, reducing outliers’ influence on the distribution. Based on these local statistics, we compute a weighted factor for each pixel. The weight W∆, is normalized by the absolute deviation of the error relative to the local mean and scaled according to the local variance:",
+  "i": 47
+ },
+ {
+  "kind": "equation",
+  "page": 5,
+  "y": 526.5,
+  "caption": "\\ l abel {(1)} W_{\\D elta } = {\\rm Tanh}( \\frac {|\\Delta _{m,n}-\\mu _{m,n}|}{\\sigma _{m, n}+\\varepsilon }), (9)",
+  "rect": [
+   110.2,
+   526.5,
+   297.8,
+   557.6
+  ],
+  "i": 48,
+  "img": "assets/p05_equation_48.png"
+ },
+ {
+  "kind": "para",
+  "page": 5,
+  "col": 0,
+  "y": 561.8,
+  "text": "where ε is a small constant added to prevent division by zero. The Tanh function is applied to ensure the weights remain within a bounded range, facilitating a smooth transition between high-variance and low-variance regions. The final loss is calculated by multiplying ∆m,n with the corresponding local weighted factor:",
+  "i": 49
+ },
+ {
+  "kind": "equation",
+  "page": 5,
+  "y": 637.8,
+  "caption": "\\l a b e l { ( 1 )} \\ m ath cal {L}_{LVW}=\\frac {1}{H\\cdot W}\\sum ^{H}_{m=1}\\sum ^{W}_{n=1}(W_{\\Delta }\\cdot \\Delta _{m,n}). (10)",
+  "rect": [
+   91.9,
+   637.8,
+   297.7,
+   674.8
+  ],
+  "i": 50,
+  "img": "assets/p05_equation_50.png"
+ },
+ {
+  "kind": "para",
+  "page": 5,
+  "col": 0,
+  "y": 679.2,
+  "text": "LLV W dynamically adjusts each pixel’s contribution to the overall loss based on locally computed weights, thereby placing greater emphasis on optimizing anomalous pixels.",
+  "i": 51
+ },
+ {
+  "kind": "para",
+  "page": 5,
+  "col": 1,
+  "y": 246.4,
+  "text": "Figure 4(b) illustrates how different loss functions handle pixel differences, emphasizing their handling of prediction errors. LLV W avoids the steep increase of L2 loss for large errors, reducing sensitivity to extreme pixels while preserving enough gradient response for small errors, balancing robustness and detail preservation.",
+  "i": 52
+ },
+ {
+  "kind": "heading",
+  "page": 5,
+  "col": 1,
+  "y": 328.9,
+  "text": "4. Experiments",
+  "i": 53
+ },
+ {
+  "kind": "heading",
+  "page": 5,
+  "col": 1,
+  "y": 348.8,
+  "text": "4.1. Experimental Settings",
+  "i": 54
+ },
+ {
+  "kind": "para",
+  "page": 5,
+  "col": 1,
+  "y": 366.7,
+  "text": "Implementation Details. We implemented MobileIE in PyTorch. The model uses the Adam optimizer with a cosine annealing learning rate schedule, starting at 0.001. The learning rate is reset every 50 epochs with gradual decay. A 10-epoch warm-up phase [30] is applied with a fixed learning rate of 1e-6. The model is trained for 2,000 epochs, incorporating an Incremental Weight Optimization Strategy for improved convergence. For the ISP task, input data is preprocessed into a 256 × 256 Bayer pattern. Dataset and Metrics. For LLE task, the LOLv1 [75] and LOLv2 [82] datasets are used for both training and testing. For UIE and ISP tasks, the UIEB [43] and ZRR [35] datasets are utilized, respectively.",
+  "i": 55
+ },
+ {
+  "kind": "heading",
+  "page": 5,
+  "col": 1,
+  "y": 529.9,
+  "text": "4.2. Quantitative and Visual Comparisons",
+  "i": 56
+ },
+ {
+  "kind": "para",
+  "page": 5,
+  "col": 1,
+  "y": 547.9,
+  "text": "In this section, we compare the proposed MobileIE with current lightweight SOTA methods across three IE tasks, focusing on visual comparisons and performance metrics. Specifically, PSNR, SSIM, LPIPS, and SCORE [37] are used as evaluation metrics, while computational complexity is tested on a single NVIDIA 4090 (GPU) and a smartphone with a Snapdragon 8 Gen 3 System on Chip (SoC). LLE: The quantitative results on the LOLv1 [75] and LOLv2 [82] datasets are presented in Table 1. MobileIE achieves superior or comparable PSNR and SSIM scores across all metrics, with an inference speed of 0.895 ms. Compared to the lightweight SOTA method IAT [19], MobileIE delivers comparable PSNR gains while using only 4.7% of the parameters, with a 6.9x faster inference speed.",
+  "i": 57
+ },
+ {
+  "kind": "table",
+  "page": 6,
+  "y": 74.9,
+  "caption": "Table 2. Performance comparison of different underwater image enhancement models on UIEB datasets. SCORE [37] represents a comprehensive measure of model performance and efficiency. The top results are marked: best in red and second in blue.",
+  "rect": [
+   58.5,
+   74.9,
+   553.5,
+   222.7
+  ],
+  "i": 58,
+  "img": "assets/p06_table_58.png"
+ },
+ {
+  "kind": "para",
+  "page": 6,
+  "col": 0,
+  "y": 246.2,
+  "text": "Figure 5 shows the visual results, where MobileIE produces higher-quality images, closely resembling the ground truth. UIE: The quantitative results in Table 2 show that MobileIE achieves a PSNR of 22.81 dB. Remarkably, MobileIE surpasses FiveA+ [40] by 0.3 dB in PSNR while using only 45% of its parameters. Figure 6 provides visual comparisons, highlighting MobileIE’s superior color restoration compared to other lightweight methods. ISP: On the ZRR [43] dataset, the quantitative results in Table 3 show that MobileIE maintains competitive performance while delivering 3x faster inference than existing lightweight SOTA models. Figure 7 provides the corresponding visual comparisons. Mobile Deployment: As shown in Tables 1, 2, and 3, MobileIE’s streamlined design (4K parameters and 0.924 GFLOPs) enables seamless deployment on commercial mobile devices, achieving real-time image enhancement at over 100 FPS. This efficiency paves the way for real-time UHD images (2K-8K) enhancement on mobile platforms.",
+  "i": 59
+ },
+ {
+  "kind": "figure",
+  "page": 6,
+  "y": 457.3,
+  "caption": "Figure 5. Visualization comparison of LLE on LOLv1 [75].",
+  "rect": [
+   58.5,
+   457.3,
+   294.7,
+   574.8
+  ],
+  "i": 60,
+  "img": "assets/p06_figure_60.png"
+ },
+ {
+  "kind": "figure",
+  "page": 6,
+  "y": 457.3,
+  "caption": "Figure 6. Visualization comparison of UIE on UIEB [43].",
+  "rect": [
+   51.5,
+   457.3,
+   294.7,
+   709.9
+  ],
+  "i": 61,
+  "img": "assets/p06_figure_61.png"
+ },
+ {
+  "kind": "figure",
+  "page": 6,
+  "y": 243.8,
+  "caption": "Figure 7. Visualization comparison of ISP on ZRR [35].",
+  "rect": [
+   323.1,
+   243.8,
+   549.8,
+   397.9
+  ],
+  "i": 62,
+  "img": "assets/p06_figure_62.png"
+ },
+ {
+  "kind": "table",
+  "page": 6,
+  "y": 243.8,
+  "caption": "Table 3. Performance comparison of different image signal processing models on ZRR datasets. SCORE [37] represents a comprehensive measure of model performance and efficiency. The top results are marked: best in red and second in blue.",
+  "rect": [
+   317.2,
+   243.8,
+   553.5,
+   520.1
+  ],
+  "i": 63,
+  "img": "assets/p06_table_63.png"
+ },
+ {
+  "kind": "heading",
+  "page": 6,
+  "col": 1,
+  "y": 564.8,
+  "text": "4.3. Ablation Studies and Analyses",
+  "i": 64
+ },
+ {
+  "kind": "para",
+  "page": 6,
+  "col": 1,
+  "y": 583.0,
+  "text": "We conducted a series of ablation studies to verify the effectiveness of MobileIE’s modules. First, MBRConv was compared with other re-parameterization methods [23, 89, 92], and LVW loss was replaced by conventional loss functions. As shown in Table 4, both MBRConv and LVW loss significantly improved the model’s performance. Importantly, MBRConv merges into standard convolutions during inference, adding no computational or memory overhead. (1) Why does MBRConv + IWO work? IWO enhances the kernel skeletons. To explore the impact of IWO on MBRConv kernels, we visualized the weight increments ∆W in the last convolutional layer of the MobileIE model trained on the UIEB dataset. Here, ∆W is defined as the difference between the weights trained with IWO (WIW O) and those trained without it (Wbase), i.e., ∆W = WIW O −Wbase. As shown in Figure 8, most ∆W values reinforce the center-row and center-column characteristics of the convolutional kernels, which contributes to improved model performance [6, 21].",
+  "i": 65
+ },
+ {
+  "kind": "table",
+  "page": 7,
+  "y": 75.4,
+  "caption": "Table 4. Performance comparison of Loss and Re-param modules.",
+  "rect": [
+   58.5,
+   75.4,
+   294.7,
+   248.4
+  ],
+  "i": 66,
+  "img": "assets/p07_table_66.png"
+ },
+ {
+  "kind": "figure",
+  "page": 7,
+  "y": 332.9,
+  "caption": "Figure 8. Visualization of kernel differences pre- and post-IWO.",
+  "rect": [
+   58.5,
+   332.9,
+   550.4,
+   423.4
+  ],
+  "i": 67,
+  "img": "assets/p07_figure_67.png"
+ },
+ {
+  "kind": "para",
+  "page": 7,
+  "col": 0,
+  "y": 430.2,
+  "text": "IWO reduces channel redundancy, validated by comparing the last Conv1×1 layer of MBRConv5×5 before and after IWO optimization. Channel similarity was measured using Kullback-Leibler (KL) [6, 73, 100] divergence, with higher values indicating lower redundancy. We trained MobileIE on the LOLv1, saving checkpoints at different stages. Applying softmax across channels and calculating KL divergence between channel pairs, we generated KL matrices at different training stages (Figure 9). As training progressed, KL divergence increased, and after IWO, it rose significantly, underscoring MBRConv’s effectiveness in reducing redundancy and improving feature representation. Impact of IWO on Training Convergence. Similar to the Pre-training stage, Wpre is the well-performing weight obtained after the first 1000 epochs. As shown in the training curves (Figure 10), without IWO, the loss stagnates in the later training stages, whereas with IWO, it continues to decrease. This demonstrates that IWO facilitates further optimization of the weights, enhancing the model’s convergence performance. The oscillation is due to cosine decay.",
+  "i": 68
+ },
+ {
+  "kind": "figure",
+  "page": 7,
+  "y": 618.5,
+  "caption": "Figure 9. KL similarity matrix for the last convolutional layer of MBRConv at different training stages.",
+  "rect": [
+   58.5,
+   618.5,
+   294.7,
+   717.8
+  ],
+  "i": 69,
+  "img": "assets/p07_figure_69.png"
+ },
+ {
+  "kind": "figure",
+  "page": 7,
+  "y": 138.0,
+  "caption": "Figure 10. Training loss curves showing the effect of IWO.",
+  "rect": [
+   317.2,
+   138.0,
+   553.5,
+   221.6
+  ],
+  "i": 70,
+  "img": "assets/p07_figure_70.png"
+ },
+ {
+  "kind": "para",
+  "page": 7,
+  "col": 1,
+  "y": 229.2,
+  "text": "(2) FST can enhance nonlinear feature interaction. The FST uses a nonlinear squaring transformation to enhance high-frequency sensitivity, highlighting image details and edges (Figure 11). In the Fourier spectrum, squaring shows a stronger high-frequency response than ReLU, effectively preserving detail. The learnable parameters, Scale, and bias, further adaptively adjust the feature dynamic range, enhancing restoration performance.",
+  "i": 71
+ },
+ {
+  "kind": "figure",
+  "page": 7,
+  "y": 332.9,
+  "caption": "Figure 11. Feature Transformation Fourier Spectrum.",
+  "rect": [
+   58.5,
+   332.9,
+   550.4,
+   422.3
+  ],
+  "i": 72,
+  "img": "assets/p07_figure_72.png"
+ },
+ {
+  "kind": "para",
+  "page": 7,
+  "col": 1,
+  "y": 427.8,
+  "text": "Figure 12 shows that the FST achieves a faster convergence rate during training compared to other feature transform methods. In the initial epochs, the FST rapidly reduces loss, demonstrating its ability to enhance feature representation early and accelerate convergence. Additionally, the FST’s final stabilized loss is lower than other methods, highlighting its robustness and effectiveness in complex tasks. Table 5 further confirms that FST delivers the best feature transform performance on the UIEB [43] dataset.",
+  "i": 73
+ },
+ {
+  "kind": "table",
+  "page": 7,
+  "y": 546.4,
+  "caption": "Table 5. Performance comparison of different feature transform. ”Baseline” represents the model without any feature transform.",
+  "rect": [
+   317.2,
+   546.4,
+   553.5,
+   674.0
+  ],
+  "i": 74,
+  "img": "assets/p07_table_74.png"
+ },
+ {
+  "kind": "para",
+  "page": 7,
+  "col": 1,
+  "y": 679.4,
+  "text": "(3) Dual-path fusion enables precise feature capture. How can one achieve both efficiency and precise capture of local and global feature dependencies? Following",
+  "i": 75
+ },
+ {
+  "kind": "figure",
+  "page": 8,
+  "y": 72.0,
+  "caption": "Figure 12. Training loss comparison of different feature transform.",
+  "rect": [
+   58.5,
+   72.0,
+   294.7,
+   186.5
+  ],
+  "i": 76,
+  "img": "assets/p08_figure_76.png"
+ },
+ {
+  "kind": "para",
+  "page": 8,
+  "col": 0,
+  "y": 202.2,
+  "text": "Occam’s Razor principle, HDPA adopts a streamlined design language, utilizing a dual-path structure and adaptive feature interaction to decompose and aggregate features hierarchically, thereby extracting critical information across different scales. This dual-path design also supports mutual optimization during backpropagation.",
+  "i": 77
+ },
+ {
+  "kind": "figure",
+  "page": 8,
+  "y": 283.9,
+  "caption": "Figure 13. Visualization of feature maps at different stages.",
+  "rect": [
+   58.5,
+   283.9,
+   294.7,
+   355.3
+  ],
+  "i": 78,
+  "img": "assets/p08_figure_78.png"
+ },
+ {
+  "kind": "para",
+  "page": 8,
+  "col": 0,
+  "y": 362.9,
+  "text": "Figure 13 illustrates HDPA’s effectiveness. The initial convolution preserves key edges and structures, while the HDPA heatmap highlights important regions, focusing attention on key details. This produces a sharper output feature map, demonstrating how HDPA’s attention improves image enhancement by refining key details.",
+  "i": 79
+ },
+ {
+  "kind": "table",
+  "page": 8,
+  "y": 446.8,
+  "caption": "Table 6. Performance comparison of different Attention mechanisms on LOLv1 [75] dataset. SCORE [37] reflects the efficiency.",
+  "rect": [
+   58.5,
+   446.8,
+   294.7,
+   576.2
+  ],
+  "i": 80,
+  "img": "assets/p08_table_80.png"
+ },
+ {
+  "kind": "para",
+  "page": 8,
+  "col": 0,
+  "y": 583.8,
+  "text": "Finally, we replaced it with mainstream attention mechanisms and conducted ablation experiments, as shown in Table 6. With minimal added parameters (+0.168 K) and FLOPs (+5.76 M), HDPA achieved a PSNR gain of +3.08 dB. Tests on mobile devices confirmed HDPA’s high performance with minimal latency, underscoring the efficiency of our edge-focused IE design in MobileIE. (4) Effectiveness of LVW in Outlier Optimization. We observed that the pixel error histograms follow a Laplace-like distribution, suggesting the model optimizes accurate pixels while neglecting outliers [27]. Based on L1 Loss,",
+  "i": 81
+ },
+ {
+  "kind": "para",
+  "page": 8,
+  "col": 1,
+  "y": 74.4,
+  "text": "LVW adjusts weights to increase the constraint on outliers. Normalization standardizes errors, bringing the data distribution closer to uniform and ensuring balanced pixel weights. Additionally, we visualized the pixel prediction error histograms for different loss functions, as shown in Figure 14. LVW exhibits lower mean and median pixel errors, improving effectiveness in optimizing challenging regions.",
+  "i": 82
+ },
+ {
+  "kind": "figure",
+  "page": 8,
+  "y": 168.6,
+  "caption": "Figure 14. Visualization of pixel prediction error histograms for various loss functions.",
+  "rect": [
+   317.2,
+   168.6,
+   553.5,
+   372.0
+  ],
+  "i": 83,
+  "img": "assets/p08_figure_83.png"
+ },
+ {
+  "kind": "para",
+  "page": 8,
+  "col": 1,
+  "y": 380.4,
+  "text": "(5) Module-Wise Lightweight Contributions. Table 7 demonstrates that re-parameterization significantly reduces model complexity during inference. IWO and LVW introduce no extra cost, making them suitable for efficient deployment. Re-parameterization combined with cost-free strategies enables efficient and lightweight inference.",
+  "i": 84
+ },
+ {
+  "kind": "table",
+  "page": 8,
+  "y": 459.1,
+  "caption": "Table 7. Ablation on different module efficiency.",
+  "rect": [
+   321.7,
+   459.1,
+   549.1,
+   512.8
+  ],
+  "i": 85,
+  "img": "assets/p08_table_85.png"
+ },
+ {
+  "kind": "heading",
+  "page": 8,
+  "col": 1,
+  "y": 527.1,
+  "text": "5. Conclusion",
+  "i": 86
+ },
+ {
+  "kind": "para",
+  "page": 8,
+  "col": 1,
+  "y": 548.0,
+  "text": "In this paper, we introduce MobileIE, a lightweight CNN with only 4K parameters designed for real-time image enhancement on mobile devices. MobileIE combines simplicity with high performance across low-light image enhancement, underwater image enhancement, and image signal processing tasks. Key components such as the MBRConv, Feature Self-Transform module, Hierarchical Dual-Path Attention mechanism, and Local Variance-Weighted loss enable MobileIE to achieve superior results while maintaining an inference time of around 0.9 ms. Furthermore, MobileIE can be easily deployed on any commercial mobile device with minimal computational overhead and efficient resource utilization. Future work will explore optimizations to expand MobileIE’s application to more different tasks.",
+  "i": 87
+ },
+ {
+  "kind": "para",
+  "page": 9,
+  "col": 0,
+  "y": 74.3,
+  "text": "Acknowledgements. This work was supported by the Key Program for International Cooperation of Ministry of Science and Technology, China (No.2024YFE0100700).",
+  "i": 88
+ },
+ {
+  "kind": "heading",
+  "page": 9,
+  "col": 0,
+  "y": 123.1,
+  "text": "References",
+  "i": 89
+ },
+ {
+  "kind": "para",
+  "page": 9,
+  "col": 0,
+  "y": 143.4,
+  "text": "[1] Lusine Abrahamyan, Valentin Ziatchin, Yiming Chen, and Nikos Deligiannis. Bias loss for mobile neural networks. In ICCV, pages 6556–6566, 2021. 1, 4 [2] Guanhua An, Ao He, Yudong Wang, and Jichang Guo. Uwmamba: Underwater image enhancement with state space model. IEEE Signal Processing Letters, 2024. 2 [3] Reza Azad, Leon Niggemeier, Michael H¨uttemann, Amirhossein Kazerouni, Ehsan Khodapanah Aghdam, Yury Velichko, Ulas Bagci, and Dorit Merhof. Beyond self-attention: Deformable large kernel attention for medical image segmentation. In WACV, pages 1287–1297, 2024. 8 [4] Jonathan T Barron. A general and adaptive robust loss function. In CVPR, pages 4331–4339, 2019. 7 [5] Yuanhao Cai, Hao Bian, Jing Lin, Haoqian Wang, Radu Timofte, and Yulun Zhang. Retinexformer: One-stage retinex-based transformer for low-light image enhancement. In ICCV, pages 12504–12513, 2023. 2 [6] Zhicheng Cai, Xiaohan Ding, Qiu Shen, and Xun Cao. Refconv: Re-parameterized refocusing convolution for powerful convnets. arXiv preprint arXiv:2310.10563, 2023. 7 [7] Hanting Chen, Yunhe Wang, Jianyuan Guo, and Dacheng Tao. Vanillanet: the power of minimalism in deep learning. NeurIPS, 36, 2024. 2 [8] Jierun Chen, Shiu-hong Kao, Hao He, Weipeng Zhuo, Song Wen, Chul-Ho Lee, and S-H Gary Chan. Run, don’t walk: chasing higher flops for faster neural networks. In CVPR, pages 12021–12031, 2023. 2 [9] Liangyu Chen, Xiaojie Chu, Xiangyu Zhang, and Jian Sun. Simple baselines for image restoration. In ECCV, pages 17–33. Springer, 2022. 1, 6, 8 [10] Xiangyu Chen, Ruiwen Zhen, Shuai Li, Xiaotian Li, and Guanghui Wang. Mofa: A model simplification roadmap for image restoration on mobile devices. In ICCV, pages 1322–1332, 2023. 1 [11] Yuantao Chen, Runlong Xia, Kai Yang, and Ke Zou. Gcam: lightweight image inpainting via group convolution and attention mechanism. International Journal of Machine Learning and Cybernetics, 15(5):1815–1825, 2024. 1 [12] Zhihao Chen and Yiyuan Ge. Mambauie&sr: Unraveling the ocean’s secrets with only 2.8 flops. arXiv preprint arXiv:2404.13884, 2024. 2 [13] Zixuan Chen, Zewei He, and Zhe-Ming Lu. Dea-net: Single image dehazing based on detail-enhanced convolution and content-guided attention. IEEE TIP, 2024. 8 [14] Haram Choi, Cheolwoong Na, Jihyeon Oh, Seungjae Lee, Jinseop Kim, Subeen Choe, Jeongmin Lee, Taehoon Kim, and Jihoon Yang. Reciprocal attention mixing transformer for lightweight image restoration. In CVPR, pages 5992– 6002, 2024. 1",
+  "i": 90
+ },
+ {
+  "kind": "para",
+  "page": 9,
+  "col": 1,
+  "y": 75.2,
+  "text": "[15] Marcos V Conde, Eduard Zamfir, Radu Timofte, Daniel Motilla, Cen Liu, Zexin Zhang, Yunbo Peng, Yue Lin, Jiaming Guo, Xueyi Zou, et al. Efficient deep models for real-time 4k image super-resolution. ntire 2023 benchmark and report. In CVPR, pages 1495–1521, 2023. 2 [16] Yuning Cui, Wenqi Ren, Xiaochun Cao, and Alois Knoll. Focal network for image restoration. In ICCV, pages 13001–13011, 2023. 1 [17] Yuning Cui, Wenqi Ren, Xiaochun Cao, and Alois Knoll. Image restoration via frequency selection. IEEE TPAMI, 2023. [18] Yuning Cui, Wenqi Ren, Xiaochun Cao, and Alois Knoll. Revitalizing convolutional network for image restoration. IEEE TPAMI, 2024. 1 [19] Ziteng Cui, Kunchang Li, Lin Gu, Shenghan Su, Peng Gao, Zhengkai Jiang, Yu Qiao, and Tatsuya Harada. You only need 90k parameters to adapt light: a light weight transformer for image enhancement and exposure correction. In BMVC, 2022. 5, 6 [20] Linhui Dai, Xiaohong Liu, Chengqi Li, and Jun Chen. Awnet: Attentive wavelet network for image isp. In ECCVW, pages 185–201. Springer, 2020. 2, 6 [21] Xiaohan Ding, Yuchen Guo, Guiguang Ding, and Jungong Han. Acnet: Strengthening the kernel skeletons for powerful cnn via asymmetric convolution blocks. In ICCV, pages 1911–1920, 2019. 2, 3, 7 [22] Xiaohan Ding, Xiangyu Zhang, Jungong Han, and Guiguang Ding. Diverse branch block: Building a convolution as an inception-like unit. In CVPR, pages 10886– 10895, 2021. 2 [23] Xiaohan Ding, Xiangyu Zhang, Ningning Ma, Jungong Han, Guiguang Ding, and Jian Sun. Repvgg: Making vgg-style convnets great again. In CVPR, pages 13733–13742, 2021. 2, 3, 6, 7 [24] Paulo LJ Drews, Erickson R Nascimento, Silvia SC Botelho, and Mario Fernando Montenegro Campos. Underwater depth estimation and image restoration based on single images. IEEE computer graphics and applications, 36(2):24–35, 2016. 2 [25] Zhenqi Fu, Wu Wang, Yue Huang, Xinghao Ding, and Kai-Kuang Ma. Uncertainty inspired underwater image enhancement. In ECCV, pages 465–482. Springer, 2022. 6 [26] Zhenqi Fu, Yan Yang, Xiaotong Tu, Yue Huang, Xinghao Ding, and Kai-Kuang Ma. Learning a simple low-light image enhancer from paired low-light instances. In CVPR, pages 22252–22261, 2023. 2, 5, 6 [27] Weiran Gou, Ziyao Yi, Yan Xiang, Shaoqing Li, Zibin Liu, Dehui Kong, and Ke Xu. Syenet: A simple yet effective network for multiple low-level vision tasks with real-time performance on mobile device. In ICCV, pages 12182–12195, 2023. 3, 4, 5, 6, 8 [28] Chunle Guo, Chongyi Li, Jichang Guo, Chen Change Loy, Junhui Hou, Sam Kwong, and Runmin Cong. Zero-reference deep curve estimation for low-light image enhancement. In CVPR, pages 1780–1789, 2020. 2, 5, 6 [29] Kai Han, Yunhe Wang, Qi Tian, Jianyuan Guo, Chunjing Xu, and Chang Xu. Ghostnet: More features from cheap operations. In CVPR, pages 1580–1589, 2020. 2",
+  "i": 91
+ },
+ {
+  "kind": "para",
+  "page": 10,
+  "col": 0,
+  "y": 75.2,
+  "text": "[30] Kaiming He, Xinlei Chen, Saining Xie, Yanghao Li, Piotr Doll´ar, and Ross Girshick. Masked autoencoders are scalable vision learners. In CVPR, pages 16000–16009, 2022. 5 [31] Xuanhua He, Tao Hu, Guoli Wang, Zejin Wang, Run Wang, Qian Zhang, Keyu Yan, Ziyi Chen, Rui Li, Chengjun Xie, et al. Enhancing raw-to-srgb with decoupled style structure in fourier domain. In AAAI, pages 2130–2138, 2024. 6 [32] Andrew Howard, Mark Sandler, Grace Chu, Liang-Chieh Chen, Bo Chen, Mingxing Tan, Weijun Wang, Yukun Zhu, Ruoming Pang, Vijay Vasudevan, et al. Searching for mobilenetv3. In ICCV, pages 1314–1324, 2019. 2 [33] Jie Hu, Li Shen, and Gang Sun. Squeeze-and-excitation networks. In CVPR, pages 7132–7141, 2018. 8 [34] Andrey Ignatov, Radu Timofte, Zhilu Zhang, Ming Liu, Haolin Wang, Wangmeng Zuo, Jiawei Zhang, Ruimao Zhang, Zhanglin Peng, Sijie Ren, et al. Aim 2020 challenge on learned image signal processing pipeline. In ECCVW, pages 152–170. Springer, 2020. 2, 6 [35] Andrey Ignatov, Luc Van Gool, and Radu Timofte. Replacing mobile camera isp with a single deep learning model. In CVPRW, pages 536–537, 2020. 2, 5, 6, 8 [36] Andrey Ignatov, Cheng-Ming Chiang, Hsien-Kai Kuo, Anastasia Sycheva, and Radu Timofte. Learned smartphone isp on mobile npus with deep learning, mobile ai 2021 challenge: Report. In CVPR, pages 2503–2514, 2021. 2 [37] Andrey Ignatov, Radu Timofte, Shuai Liu, Chaoyu Feng, Furui Bai, Xiaotao Wang, Lei Lei, Ziyao Yi, Yan Xiang, Zibin Liu, et al. Learned smartphone isp on mobile gpus with deep learning, mobile ai & aim 2022 challenge: report. In ECCVW, pages 44–70. Springer, 2022. 2, 5, 6, 8 [38] Md Jahidul Islam, Youya Xia, and Junaed Sattar. Fast underwater image enhancement for improved visual perception. IEEE Robotics and Automation Letters, 5(2):3227– 3234, 2020. 2, 6 [39] Hai Jiang, Ao Luo, Haoqiang Fan, Songchen Han, and Shuaicheng Liu. Low-light image enhancement with wavelet-based diffusion models. TOG, 42(6):1–14, 2023. 2 [40] Jingxia Jiang, Tian Ye, Jinbin Bai, Sixiang Chen, Wenhao Chai, Shi Jun, Yun Liu, and Erkang Chen. Five a+ network: You only need 9k parameters for underwater image enhancement. In BMVC, 2023. 2, 6 [41] Raqib Khan, Priyanka Mishra, Nancy Mehta, Shruti S Phutke, Santosh Kumar Vipparthi, Sukumar Nandi, and Subrahmanyam Murala. Spectroformer: Multi-domain query cascaded transformer network for underwater image enhancement. In WACV, pages 1454–1463, 2024. 2 [42] Ao Li, Le Zhang, Yun Liu, and Ce Zhu. Feature modulation transformer: Cross-refinement of global representation via high-frequency prior for image super-resolution. In ICCV, pages 12514–12524, 2023. 1 [43] Chongyi Li, Chunle Guo, Wenqi Ren, Runmin Cong, Junhui Hou, Sam Kwong, and Dacheng Tao. An underwater image enhancement benchmark dataset and beyond. IEEE TIP, 29:4376–4389, 2019. 5, 6, 7",
+  "i": 92
+ },
+ {
+  "kind": "para",
+  "page": 10,
+  "col": 1,
+  "y": 75.2,
+  "text": "[44] Chongyi Li, Chunle Guo, and Chen Change Loy. Learning to enhance low-light image via zero-reference deep curve estimation. IEEE TPAMI, 44(8):4225–4238, 2021. 5 [45] Yawei Li, Yulun Zhang, Radu Timofte, Luc Van Gool, Lei Yu, Youwei Li, Xinpeng Li, Ting Jiang, Qi Wu, Mingyan Han, et al. Ntire 2023 challenge on efficient super-resolution: Methods and results. In CVPR, pages 1922– 1960, 2023. 2 [46] Risheng Liu, Long Ma, Jiaao Zhang, Xin Fan, and Zhongxuan Luo. Retinex-inspired unrolling with cooperative prior architecture search for low-light image enhancement. In CVPR, pages 10561–10570, 2021. 2, 5, 6 [47] Xu Liu, Sen Lin, Kaichen Chi, Zhiyong Tao, and Yang Zhao. Boths: Super lightweight network-enabled underwater image enhancement. IEEE Geoscience and Remote Sensing Letters, 20:1–5, 2023. 6 [48] Xiaoning Liu, Zongwei Wu, Ao Li, Florin-Alexandru Vasluianu, Yulun Zhang, Shuhang Gu, Le Zhang, Ce Zhu, Radu Timofte, Zhi Jin, et al. Ntire 2024 challenge on low light image enhancement: Methods and results. arXiv preprint arXiv:2404.14248, 2024. 1 [49] Yichao Liu, Zongru Shao, Yueyang Teng, and Nico Hoffmann. Nam: Normalization-based attention module. arXiv preprint arXiv:2111.12419, 2021. 8 [50] Long Ma, Tengyu Ma, Risheng Liu, Xin Fan, and Zhongxuan Luo. Toward fast, flexible, and robust low-light image enhancement. In CVPR, pages 5637–5646, 2022. 5 [51] Xu Ma, Xiyang Dai, Yue Bai, Yizhou Wang, and Yun Fu. Rewrite the stars. In CVPR, pages 5694–5703, 2024. 2, 4 [52] Ziyin Ma and Changjae Oh. A wavelet-based dual-stream network for underwater image enhancement. In ICASSP, pages 2769–2773, 2022. 2, 6 [53] Ankita Naik, Apurva Swarnakar, and Kartik Mittal. Shallow-uwnet: Compressed model for underwater image enhancement (student abstract). In AAAI, pages 15853– 15854, 2021. 2, 6 [54] Daliang Ouyang, Su He, Guozhong Zhang, Mingzhu Luo, Huaiyong Guo, Jian Zhan, and Zhijie Huang. Efficient multi-scale attention module with cross-spatial learning. In ICASSP, pages 1–5, 2023. 8 [55] Lintao Peng, Chunli Zhu, and Liheng Bian. U-shape transformer for underwater image enhancement. IEEE TIP, 32: 3066–3079, 2023. 1, 2, 6 [56] Georgy Perevozchikov, Nancy Mehta, Mahmoud Afifi, and Radu Timofte. Rawformer: Unpaired raw-to-raw translation for learnable camera isps. arXiv preprint arXiv:2404.10700, 2024. 2 [57] Nianzu Qiao, Changyin Sun, and Lu Dong. Semi-supervised feature distillation and unsupervised domain adversarial distillation for underwater image enhancement. IEEE TCSVT, 2024. 1 [58] Jingxiang Qu, Ryan Wen Liu, Yuan Gao, Yu Guo, Fenghua Zhu, and Fei-Yue Wang. Double domain guided real-time low-light image enhancement for ultra-high-definition transportation surveillance. IEEE Transactions on Intelligent Transportation Systems, 2024. 5",
+  "i": 93
+ },
+ {
+  "kind": "para",
+  "page": 11,
+  "col": 0,
+  "y": 75.2,
+  "text": "[59] Nareddy Kartheek Kumar Reddy, Mani Madhoolika Bulusu, Praveen Kumar Pokala, and Chandra Sekhar Seelamantula. Quantized proximal averaging networks for compressed image recovery. In CVPR, pages 4633–4643, 2023. 1 [60] Bin Ren, Yawei Li, Nancy Mehta, Radu Timofte, Hongyuan Yu, Cheng Wan, Yuxin Hong, Bingnan Han, Zhuoyuan Wu, Yajun Zou, et al. The ninth ntire 2024 efficient super-resolution challenge report. In CVPR, pages 6595–6631, 2024. 2 [61] Prasen Sharma, Ira Bisht, and Arijit Sur. Wavelengthbased attributed deep neural network for underwater image restoration. ACM Transactions on Multimedia Computing, Communications and Applications, 19(1):1–23, 2023. 2 [62] Zhuoran Shen, Mingyuan Zhang, Haiyu Zhao, Shuai Yi, and Hongsheng Li. Efficient attention: Attention with linear complexities. In WACV, pages 3531–3539, 2021. 8 [63] Xiangsheng Shi, Xuefei Ning, Lidong Guo, Tianchen Zhao, Enshu Liu, Yi Cai, Yuhan Dong, Huazhong Yang, and Yu Wang. Memory-oriented structural pruning for efficient image restoration. In AAAI, pages 2245–2253, 2023. 1 [64] Yehui Tang, Kai Han, Jianyuan Guo, Chang Xu, Chao Xu, and Yunhe Wang. Ghostnetv2: Enhance cheap operation with long-range attention. NeurIPS, 35:9969–9982, 2022. 8 [65] Yi Tang, Hiroshi Kawasaki, and Takafumi Iwaguchi. Underwater image enhancement by transformer-based diffusion model with non-uniform sampling for skip strategy. In ACM MM, pages 5419–5427, 2023. 2 [66] Pavan Kumar Anasosalu Vasu, James Gabriel, Jeff Zhu, Oncel Tuzel, and Anurag Ranjan. Mobileone: An improved one millisecond mobile backbone. In CVPR, pages 7907– 7917, 2023. 1, 2 [67] Cheng Wan, Hongyuan Yu, Zhiqi Li, Yihang Chen, Yajun Zou, Yuqing Liu, Xuanwu Yin, and Kunlong Zuo. Swift parameter-free attention network for efficient super-resolution. In CVPR, pages 6246–6256, 2024. 8 [68] Ao Wang, Hui Chen, Zijia Lin, Jungong Han, and Guiguang Ding. Repvit: Revisiting mobile cnn from vit perspective. In CVPR, pages 15909–15920, 2024. 2 [69] Cong Wang, Jinshan Pan, Wei Wang, Gang Fu, Siyuan Liang, Mengzhu Wang, Xiao-Ming Wu, and Jun Liu. Correlation matching transformation transformers for uhd image restoration. In AAAI, pages 5336–5344, 2024. 1 [70] Qilong Wang, Banggu Wu, Pengfei Zhu, Peihua Li, Wangmeng Zuo, and Qinghua Hu. Eca-net: Efficient channel attention for deep convolutional neural networks. In CVPR, pages 11534–11542, 2020. 8 [71] Tao Wang, Kaihao Zhang, Tianrun Shen, Wenhan Luo, Bjorn Stenger, and Tong Lu. Ultra-high-definition low-light image enhancement: A benchmark and transformer-based method. In AAAI, pages 2654–2662, 2023. 2 [72] William Y Wang, Lisa Liu, and Pingping Cai. Adversarially regularized low-light image enhancement. In International Conference on Multimedia Modeling, pages 230– 243. Springer, 2024. 5",
+  "i": 94
+ },
+ {
+  "kind": "para",
+  "page": 11,
+  "col": 1,
+  "y": 75.2,
+  "text": "[73] Xudong Wang and X Yu Stella. Tied block convolution: Leaner and better cnns with shared thinner filters. In AAAI, pages 10227–10235, 2021. 7 [74] Xintao Wang, Chao Dong, and Ying Shan. Repsr: Training efficient vgg-style super-resolution networks with structural re-parameterization and batch normalization. In ACM MM, pages 2556–2564, 2022. 3 [75] Chen Wei, Wenjing Wang, Wenhan Yang, and Jiaying Liu. Deep retinex decomposition for low-light enhancement. In BMVC, 2018. 5, 6, 7, 8 [76] Yanjie Wen, Ping Xu, Zhihong Li, and Wangtu Xu ATO. An illumination-guided dual attention vision transformer for low-light image enhancement. PR, page 111033, 2024. 2 [77] Sanghyun Woo, Jongchan Park, Joon-Young Lee, and In So Kweon. Cbam: Convolutional block attention module. In ECCV, pages 3–19, 2018. 8 [78] Wenhui Wu, Jian Weng, Pingping Zhang, Xu Wang, Wenhan Yang, and Jianmin Jiang. Uretinex-net: Retinex-based deep unfolding network for low-light image enhancement. In CVPR, pages 5901–5910, 2022. 2 [79] Bin Xia, Yulun Zhang, Shiyin Wang, Yitong Wang, Xinglong Wu, Yapeng Tian, Wenming Yang, and Luc Van Gool. Diffir: Efficient diffusion model for image restoration. In ICCV, pages 13095–13105, 2023. 1 [80] Xiaogang Xu, Shu Kong, Tao Hu, Zhe Liu, and Hujun Bao. Boosting image restoration via priors from pre-trained models. In CVPR, pages 2900–2909, 2024. 1 [81] Hailong Yan, Junjian Huang, and Tingwen Huang. Igdnet: Zero-shot robust underexposed image enhancement via illumination-guided and denoising. arXiv preprint arXiv:2507.02445, 2025. 2 [82] Wenhan Yang, Shiqi Wang, Yuming Fang, Yue Wang, and Jiaying Liu. From fidelity to perceptual quality: A semi-supervised approach for low-light image enhancement. In CVPR, pages 3063–3072, 2020. 5, 7 [83] Juncheol Ye, Hyunho Yeo, Jinwoo Park, and Dongsu Han. Accelir: Task-aware image compression for accelerating neural restoration. In CVPR, pages 18216–18226, 2023. 1 [84] Mingxin Yi, Kai Zhang, Pei Liu, Tanli Zuo, and Jingduo Tian. Diffraw: Leveraging diffusion model to generate dslr-comparable perceptual quality srgb from smartphone raw images. In AAAI, pages 6711–6719, 2024. 1, 2 [85] Xunpeng Yi, Han Xu, Hao Zhang, Linfeng Tang, and Jiayi Ma. Diff-retinex: Rethinking low-light image enhancement with a generative diffusion model. In ICCV, pages 12302– 12311, 2023. 2 [86] Syed Waqas Zamir, Aditya Arora, Salman Khan, Munawar Hayat, Fahad Shahbaz Khan, Ming-Hsuan Yang, and Ling Shao. Learning enriched features for real image restoration and enhancement. In ECCV, pages 492–511. Springer, 2020. 1 [87] Hui Zeng, Jianrui Cai, Lida Li, Zisheng Cao, and Lei Zhang. Learning image-adaptive 3d lookup tables for high performance photo enhancement in real-time. IEEE TPAMI, 44(4):2058–2073, 2020. 5",
+  "i": 95
+ },
+ {
+  "kind": "para",
+  "page": 12,
+  "col": 0,
+  "y": 75.2,
+  "text": "[88] Jiangning Zhang, Xiangtai Li, Jian Li, Liang Liu, Zhucun Xue, Boshen Zhang, Zhengkai Jiang, Tianxin Huang, Yabiao Wang, and Chengjie Wang. Rethinking mobile block for efficient attention-based models. In ICCV, pages 1389–1400, 2023. 1, 2 [89] Mingyang Zhang, Xinyi Yu, Jingtao Rong, and Linlin Ou. Repnas: Searching for efficient re-parameterizing blocks. In ICME, pages 270–275, 2023. 6, 7 [90] Song Zhang, Shili Zhao, Dong An, Daoliang Li, and Ran Zhao. Liteenhancenet: A lightweight network for real-time single underwater image enhancement. Expert Systems with Applications, 240:122546, 2024. 6 [91] Xiangyu Zhang, Xinyu Zhou, Mengxiao Lin, and Jian Sun. Shufflenet: An extremely efficient convolutional neural network for mobile devices. In CVPR, pages 6848–6856, 2018. 2 [92] Xindong Zhang, Hui Zeng, and Lei Zhang. Edge-oriented convolution block for real-time super resolution on mobile devices. In ACM MM, pages 4034–4043, 2021. 3, 6, 7 [93] Xuanqi Zhang, Haijin Zeng, Jinwang Pan, Qiangqiang Shen, and Yongyong Chen. Llemamba: Low-light enhancement via relighting-guided mamba with deep unfolding network. arXiv preprint arXiv:2406.01028, 2024. 2 [94] Yonghua Zhang, Xiaojie Guo, Jiayi Ma, Wei Liu, and Jiawan Zhang. Beyond brightening low-light images. IJCV, 129:1013–1037, 2021. 5 [95] Zhilu Zhang, Haolin Wang, Ming Liu, Ruohao Wang, Jiawei Zhang, and Wangmeng Zuo. Learning raw-to-srgb mappings with inaccurately aligned supervision. In ICCV, pages 4348–4358, 2021. 2, 6 [96] Chen Zhao, Weiling Cai, Chenyu Dong, and Chengwei Hu. Wavelet-based fourier information interaction with frequency diffusion adjustment for underwater image restoration. In CVPR, pages 8281–8291, 2024. 1, 2 [97] Chen Zhao, Weiling Cai, Chenyu Dong, and Ziqi Zeng. Toward sufficient spatial-frequency interaction for gradient-aware underwater image enhancement. In ICASSP, pages 3220–3224, 2024. 6 [98] Shen Zheng and Gaurav Gupta. Semantic-guided zero-shot learning for low-light image/video enhancement. In WACV, pages 581–590, 2022. 5 [99] Fuheng Zhou, Dikai Wei, Ye Fan, Yulong Huang, and Yonggang Zhang. A 7k parameter model for underwater image enhancement based on transmission map prior. arXiv preprint arXiv:2405.16197, 2024. 6 [100] Yuefu Zhou, Ya Zhang, Yanfeng Wang, and Qi Tian. Accelerate cnn via recursive bayesian pruning. In ICCV, pages 3306–3315, 2019. 7 [101] Peixian Zhuang, Jiamin Wu, Fatih Porikli, and Chongyi Li. Underwater image enhancement with hyper-laplacian reflectance priors. IEEE TIP, 31:5442–5455, 2022. 2",
+  "i": 96
+ }
+]
