@@ -370,6 +370,46 @@
   - 维护义务：新环境事实/新踩坑/新经验 → 当场追加进 `memory.md`；每次实质提问后追加进 `QA.md`；旧结论过期 → 更新对应条目并留更新记录。
 - **依据**：本文件与 `memory.md` 头部说明
 
+## F. 工程与发布类
+
+### F1. 「项目代码上传至 github」→ 公开仓库 MobileIE-repro
+- **时间**：2026-09-29 14:42 提出（当时结论"先设私有"）｜**14:55 用户改判为公开**｜当时：训练未在跑（停在 ep1250），看板未启动
+- **答案（已完成并已发布）**：**https://github.com/38260/MobileIE-repro** —— 可见性 **PUBLIC**，默认分支 `main`，当前提交 `755c44e`。
+  - **前置体检**：项目原本**没有 git 仓库**；总计 **18.03 GB**，其中 `repro/data/` 16.0 GB（99,871 个文件）、
+    一个第三方 APK **1.88 GB**、`cloud/dist` 336 MB、`deploy/wheels.zip` 68 MB。
+    → **有 3 个文件超过 GitHub 单文件 100 MB 硬上限**，这类文件一旦进历史就得重写历史才能清掉。
+  - **敏感信息扫描**（942 个候选文本文件）：**无真实凭据**。8 处命中全在 `output/`（生成的 PPT 资源），
+    其中 6 处是压缩过的第三方 JS 把 `password`/`PWD` 当变量名的误报，2 处是 PPT 里一条小红书主页链接带的
+    `xsec_token`（`output/` 已整体排除）。`cloud/configs/*.yaml` 干净。
+  - **关键事实**：`MobileIE-main/MobileIE-main/LICENSE` 是 **Apache License 2.0** → 作者发布的代码
+    **可以合法随附**（保留 LICENSE），而且 `repro/setup.sh:25` 会检查这个路径，
+    **没有它整个复现跑不起来**。→ 已纳入。
+  - **最终范围**：**176 个文件 / 7.83 MB**（打包后 6.48 MiB），提交 `755c44e`（amend 前为 `b0e59da`，仅改作者身份，内容不变）。
+    含：`repro/src`、`repro/scripts`、`repro/configs`、`cloud/`、`deploy/`、`MobileIE-main/`（Apache-2.0）、
+    根目录脚本与全部分析文档、`repro/runs/**/metrics.jsonl` 等实验记录。
+    不含：数据集（16 GB）、论文原文与 183 张插图（IEEE 版权）、训练权重、第三方 APK、
+    `cloud/dist`、`deploy/wheels*`、`output/`、`*.bak-*`。
+  - **验证**：`git rev-list --objects --all | grep -c "\.pdf$\|paper/.*\.png$"` = **0**
+    —— 论文材料**整个对象库里都没有**（不只是当前提交里没有）。中途两次重建提交留下的不可达对象
+    已用 `git reflog expire --expire=now --all && git gc --prune=now` 清除（29.32 MiB → 6.48 MiB）。
+  - **方法要点**：改上传范围**不能靠"再提交一次删掉文件"**（文件仍在历史里可下载）。
+    仓库未推送、无远端时，正确做法是**重建首次提交**：
+    `git rm -r --cached .` → 改 `.gitignore` → `git add -A` → `git commit --amend` → gc。
+  - **发布执行**：`gh auth` 已就绪（账号 `38260`，token scopes `gist, read:org, repo`；`github.com` 直连 HTTP 200）→
+    `gh repo create MobileIE-repro --public --source=. --remote=origin --push --description "…"`
+    一条命令完成建仓 + 绑 remote + 推 `main`（返回 `HEAD -> main`、`branch 'main' set up to track 'origin/main'`）。
+  - **隐私（已处理）**：原提交作者是全局身份 `16ULTRA\luckyzyb <2581847312@qq.com>`。
+    经用户确认，**仅在本仓库**（`git config --local`，全局配置未动）改为项目署名规范 `BJTU-Yibo`
+    + GitHub 匿名地址 `114645079+38260@users.noreply.github.com`（仍正确关联账号贡献），
+    再 `git commit --amend --no-edit --reset-author` 使作者与提交者同时生效。QQ 邮箱未进入公开历史。
+  - **远端复核（GitHub API，不只看本地）**：`blob` 数 **176**（=本地）、最大文件 **1.9 MB**
+    （`MobileIE-main/MobileIE-main/figs/framework.png`）、论文材料 `\.pdf$|^paper/.*\.png$` 命中 **0**、
+    `^repro/data/|^repro/third_party/|^output/|^deploy/wheels` 命中 **0**。
+  - **判据沉淀**：**"能不能公开"取决于最严的那一项**。IEEE 论文原文与 183 张插图已排除、
+    作者代码是 Apache-2.0 可随附 → 本仓库从"只能私有"变成"可直接公开"，无需为重写历史付出成本。
+- **依据**：`.gitignore`（本次新建）、`git log`/`git ls-files`/`git count-objects`/`git rev-list` 实测、
+  `MobileIE-main/MobileIE-main/LICENSE`、`repro/setup.sh:25`
+
 ---
 
 ## 更新记录
@@ -385,3 +425,5 @@
 | 2026-09-29 08:35 | 新增 **C4**（极值点常驻看板 + 横轴每格 250 轮；含"JS 回调参数 `m` 遮蔽外层边距对象，导致两个夹回守卫一直是死代码"这个真 bug，以及"`PAGE` 是 import 时常量 → 改完必须重启看板"）。**时间线更正/补齐**：训练实际停在 **ep1250 @22:49:25**，22:57 关机，09-29 08:06 开机。已核实**不是崩溃**（应用日志无 python 崩溃事件），**也与本次页面改动无关**（本次全程只读，另起测试看板只用 8799–8805，从未向 `/api/action` 发过任何 POST）。 |
 | 2026-09-29 10:55 | 新增 **D4**（IWO 的底层逻辑：作用点、3 行代码差异、实测参数账 49,978→49,978 可训练不变、论文三条证据，以及"本质是重参数化 / 实测增益仅 +0.053 dB / Fig.10 对比被新退火周期混淆 / 官方代码根本没接线"四点独立判断）。 |
 | 2026-09-29 13:00 | 新增 **D5**（作者公布的是"零件"不是"接线"：全仓 0 处引用 `utils_IWO`；我们的接线状态 + `selfcheck.py` 实跑全 PASS；用训练出的权重实测 ΔW 规模 27.5%–163%、`tail_warm` 的 Δ 恒为 0、Fig.8 中心行列说法只有弱支持；并定位了 `model_best_slim.pkl` 与 CPU 重折叠差 4.6e-04 的根因是训练时开了 TF32）。 |
+| 2026-09-29 14:55 | 新增 **F1**（上传 GitHub：18 GB → 176 文件 / 7.83 MB；体积体检、敏感信息扫描、作者仓库 Apache-2.0 可随附、论文材料排除、`git rev-list` 全对象库复核、重建首次提交的做法）。**遗留**：`gh auth login` 未完成，建仓与推送未执行。 |
+| 2026-09-29 15:00 | **F1 收口**：用户改判为 **公开**仓库，已发布 **https://github.com/38260/MobileIE-repro**（PUBLIC，main）。作者身份经用户确认改为 `BJTU-Yibo` + GitHub 匿名邮箱（**仅仓库级**，全局配置未动），首次提交 amend 为 `755c44e`。远端 API 复核：176 文件 / 最大 1.9 MB / 论文材料 0 / 数据集与产物 0。 |

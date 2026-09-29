@@ -184,6 +184,25 @@
    - **敏感信息扫描**用 Python 正则过一遍候选文本文件（密码/令牌/云厂商 AK/私钥块/认证头）。
      注意**压缩过的 JS 会有大量误报**（`password`、`PWD` 出现在变量名里），要按文件类型排除 vendor 包。
    - **凭据绝不经过对话**：认证让用户在自己终端 `gh auth login`，不要让他们把 token 贴进聊天记录。
+   - **改上传范围要"重建首次提交"，不要靠"再提交一次删掉"**——后者文件仍留在历史里可被下载。
+     仓库未推送、无远端时正确做法：`git rm -r --cached .` → 改 `.gitignore` → `git add -A`
+     → `git commit --amend` → `git reflog expire --expire=now --all && git gc --prune=now`。
+   - **验证要查"整个对象库"而不是"当前提交"**：
+     `git rev-list --objects --all | grep -c "\.pdf$\|paper/.*\.png$"` 必须为 0。
+   - **随附别人的代码前先看 LICENSE**：本项目作者仓库是 Apache-2.0 → 可以合法随附（保留 LICENSE）；
+     而论文 PDF 与插图是 IEEE/CVF 版权、没有再分发许可 → 排除。
+     **"能不能公开"取决于最严的那一项**：把 IEEE 材料排除掉，仓库以后想转公开就不用重写历史。
+   - **发布用一条命令**：`gh repo create <name> --public --source=. --remote=origin --push --description "…"`
+     即可建仓 + 绑 remote + 推 main（不必分开三步）。公开/私有只差 `--public` / `--private`
+     —— **未推送前随时可改主意**：本项目按"将来可公开"的标准做排除，用户随后改判公开，零成本切换。
+   - **未推送前是改作者身份的零成本窗口**：公开仓库会把 `user.name`/`user.email` 写进公开历史。
+     改法用 `git config --local`（**只改本仓库，绝不动全局**）+ `git commit --amend --no-edit --reset-author`，
+     作者与提交者同时生效、SHA 变化在无远端时无影响。**尊重用户既有全局身份，不要擅自改全局配置。**
+   - **发布后要查远端，不能只查本地**：本地 `git rev-list` 只证明对象库干净；再用
+     `gh api "repos/<owner>/<repo>/git/trees/<branch>?recursive=1"`
+     复核远端实际 blob 数、最大文件体积、排除项命中数。
+     **坑**：Git Bash 下 `gh api /user` 的前导斜杠会被改写成文件路径（报 `invalid API endpoint: C:/…`），
+     **省略前导斜杠**写 `gh api user`。
 
 ---
 
